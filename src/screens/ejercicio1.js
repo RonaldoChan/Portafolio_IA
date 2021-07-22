@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,16 +7,17 @@ import {
   useWindowDimensions,
   ScrollView,
   ToastAndroid,
-} from "react-native";
+} from 'react-native';
+import { useAlgoritmo } from './hooks';
 
 export default function ejercicio1() {
   const [punto, setPunto] = useState([0, 0]);
   return (
     <View style={{ margin: 20 }}>
-      <View style={{ flexDirection: "row" }}>
+      <View style={{ flexDirection: 'row' }}>
         <TextInputComponent
-          text={"Numero de filas"}
-          value={`${punto[0] || ""}`}
+          text={'Numero de filas'}
+          value={`${punto[0] || ''}`}
           onChangeText={(value) => {
             const nuevoPunto = [...punto];
             const n = parseInt(value);
@@ -25,8 +26,8 @@ export default function ejercicio1() {
           }}
         />
         <TextInputComponent
-          text={"Numero de columnas"}
-          value={`${punto[1] || ""}`}
+          text={'Numero de columnas'}
+          value={`${punto[1] || ''}`}
           onChangeText={(value) => {
             const nuevoPunto = [...punto];
             const n = parseInt(value);
@@ -43,14 +44,14 @@ export default function ejercicio1() {
 
 const TextInputComponent = (props) => {
   return (
-    <View style={{ flex: 1, alignItems: "center" }}>
+    <View style={{ flex: 1, alignItems: 'center' }}>
       <Text>{props.text}</Text>
       <TextInput
         value={props.value}
         onChangeText={props.onChangeText}
-        keyboardType={"number-pad"}
+        keyboardType={'number-pad'}
         style={{
-          width: "90%",
+          width: '90%',
           height: 40,
           borderWidth: 0.5,
           borderRadius: 5,
@@ -69,101 +70,95 @@ const Button = (props) => {
           padding: 10,
           borderTopRightRadius: 5,
           borderBottomLeftRadius: 5,
-          shadowColor: "#000",
+          shadowColor: '#000',
           shadowOffset: {
             width: 0,
             height: 2,
           },
           shadowOpacity: 0.25,
           shadowRadius: 3.84,
-          backgroundColor: "white",
+          backgroundColor: 'white',
           elevation: 5,
         },
         props.style,
-      ]}
-    >
+      ]}>
       <Text>{props.text}</Text>
     </TouchableOpacity>
   );
 };
 
-const Tabla = (props) => {
-  const datosFila = new Array(props.filas)
-    .fill(0)
-    .map((_, index) => `f${index}`);
-  const datosColumna = new Array(props.columnas)
-    .fill(0)
-    .map((_, index) => `c${index}`);
-  const [pared, setPared] = useState({});
-  const [inicioFin, setInicioFin] = useState(["", ""]);
-  const listaPared = Object.keys(pared);
-  console.log(`pared`, listaPared);
-  console.log(`inicio fin`, inicioFin);
+const Muro = ({ item, style }) => {
+  const [color, setColor] = useState('white');
+
+  useEffect(() => {
+    item.listenUpdate((col) => {
+      setColor(col);
+    });
+  }, []);
+
+  return (
+    <TouchableOpacity
+    onLongPress={()=>{
+      item.seleccionaInicioFin()
+    }}
+      onPress={()=>{
+        item.seleccionarMuro()
+      }}
+      style={[
+        style,
+        {
+          backgroundColor: color,
+        },
+      ]}></TouchableOpacity>
+  );
+};
+
+const Tabla = ({ filas, columnas }) => {
   const dimension = useWindowDimensions();
+
+  const { iniciar,reiniciar, escenario, crearEscenario } = useAlgoritmo();
+
   return (
     <ScrollView style={{ marginTop: 30, marginBottom: 50 }}>
-      {datosFila.map((keyF, i) => {
+      {escenario.map((item, i) => {
         return (
-          <View key={keyF} style={{ flexDirection: "row" }}>
-            {datosColumna.map((keyC, j) => {
-              const key = `${i},${j}`;
-              let color =
-                inicioFin[0] === key || inicioFin[1] === key
-                  ? "yellow"
-                  : pared[key]
-                  ? "black"
-                  : "white";
-
-              const pintar = () => {
-                setPared({ ...pared, [key]: true });
-              };
-
-              const despintar = () => {
-                const nuevaPared = { ...pared };
-                delete nuevaPared[key];
-                console.log(`nuevaPAreds`, nuevaPared);
-                setPared(nuevaPared);
-              };
-
+          <View key={i.toString()} style={{ flexDirection: 'row' }}>
+            {item.map((item, j) => {
               return (
-                <TouchableOpacity
-                  onLongPress={() => {
-                    if (!pared[key]) {
-                      const aux = [...inicioFin];
-                      aux[0] = key;
-                      ToastAndroid.show("Seleccione Fin ", 300);
-                      setInicioFin(aux);
-                    }
-                  }}
-                  key={keyC}
-                  onPress={() => {
-                    if (inicioFin[0] && inicioFin[1]) {
-                      setInicioFin(["", ""]);
-                    } else if (inicioFin[0]) {
-                      const aux = [...inicioFin];
-                      aux[1] = key;
-                      setInicioFin(aux);
-                    } else {
-                      if (pared[key]) {
-                        despintar();
-                      } else {
-                        pintar();
-                      }
-                    }
-                  }}
+                <Muro
+                  key={`${i}${j}`}
+                  item={item}
                   style={{
-                    width: (dimension.width - 40) / props.columnas,
-                    height: (dimension.width - 40) / props.filas,
+                    width: (dimension.width - 40) / columnas,
+                    height: (dimension.width - 40) / filas,
                     borderWidth: 1,
-                    backgroundColor: color,
                   }}
-                ></TouchableOpacity>
+                />
               );
             })}
           </View>
         );
       })}
-      <Text style={{ fontWeight: "bold", textAlign: "center" }}>
+      <Text
+        onPress={() => {
+          crearEscenario({ filas, columnas})
+        }}>
+        crear
+      </Text>
+      <Text
+        onPress={() => {
+          ToastAndroid.show('press ', 300);
+          iniciar();
+        }}>
+        iniciar
+      </Text>
+      <Text
+        onPress={() => {
+          reiniciar()
+        }}>
+        reiniciar
+      </Text>
+      <Text style={{ fontWeight: 'bold', textAlign: 'center' }}>
         Lista de paredes
       </Text>
       {/* <FlatList
@@ -174,11 +169,11 @@ const Tabla = (props) => {
         numColumns={2}
         keyExtractor={(item) => item}
       /> */}
-      <ScrollView style={{ height: 150 }}>
+      {/* <ScrollView style={{ height: 150 }}>
         {listaPared.map((item) => (
           <Text>{item}</Text>
         ))}
-      </ScrollView>
+      </ScrollView> */}
     </ScrollView>
   );
 };
